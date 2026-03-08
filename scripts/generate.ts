@@ -271,8 +271,7 @@ async function downloadImages(dir: string, urls: string[]): Promise<string[]> {
   const files: string[] = [];
   for (let i = 0; i < urls.length; i++) {
     const url = urls[i];
-    const ext = path.extname(new URL(url).pathname) || '.png';
-    const p = path.join(dir, `${i + 1}${ext}`);
+    const p = path.join(dir, `${i + 1}.png`);
     const { data } = await axios.get(url, { responseType: 'arraybuffer', timeout: 60000 });
     fs.writeFileSync(p, Buffer.from(data));
     files.push(p);
