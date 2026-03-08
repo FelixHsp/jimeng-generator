@@ -14,6 +14,25 @@ import * as path from 'path';
 import axios from 'axios';
 
 // ============================================================
+//  加载 .env 配置（项目根目录下的 .env 文件）
+// ============================================================
+
+(function loadEnv() {
+  const envPath = path.resolve(__dirname, '..', '.env');
+  if (!fs.existsSync(envPath)) return;
+  const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const idx = line.indexOf('=');
+    if (idx < 0) continue;
+    const key = line.slice(0, idx).trim();
+    const val = line.slice(idx + 1).trim();
+    if (!process.env[key]) process.env[key] = val;
+  }
+})();
+
+// ============================================================
 //  常量
 // ============================================================
 
@@ -247,6 +266,20 @@ function writeImages(dir: string, b64: string[]): string[] {
   });
 }
 
+async function downloadImages(dir: string, urls: string[]): Promise<string[]> {
+  fs.mkdirSync(dir, { recursive: true });
+  const files: string[] = [];
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    const ext = path.extname(new URL(url).pathname) || '.png';
+    const p = path.join(dir, `${i + 1}${ext}`);
+    const { data } = await axios.get(url, { responseType: 'arraybuffer', timeout: 60000 });
+    fs.writeFileSync(p, Buffer.from(data));
+    files.push(p);
+  }
+  return files;
+}
+
 // ============================================================
 //  CLI 解析
 // ============================================================
@@ -359,9 +392,14 @@ async function run(): Promise<void> {
     const b64 = result.data?.binary_data_base64 ?? [];
     let files: string[] = [];
 
-    if (opts.save && b64.length) {
-      files = writeImages(opts.outDir, b64);
-      log(`已保存 ${files.length} 张图片 -> ${opts.outDir}`);
+    if (opts.save) {
+      if (b64.length) {
+        files = writeImages(opts.outDir, b64);
+      } else if (urls.length) {
+        log('正在从 URL 下载图片...');
+        files = await downloadImages(opts.outDir, urls);
+      }
+      if (files.length) log(`已保存 ${files.length} 张图片 -> ${opts.outDir}`);
     }
 
     const output: Record<string, any> = {
