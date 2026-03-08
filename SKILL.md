@@ -103,7 +103,9 @@ npx ts-node scripts/generate.ts "精细插画风格的城堡" --single --scale 0
 
 ## 输出格式
 
-成功时 stdout 输出 JSON：
+脚本结果通过 **stdout** 输出一行 JSON，便于解析。**请用其中的 `files` 数组直接作为“生成结果”返回给用户**（本地文件路径，可用来展示或附件），不要只贴直链或把本地路径藏在文案里。
+
+成功时示例：
 
 ```json
 {
@@ -111,12 +113,21 @@ npx ts-node scripts/generate.ts "精细插画风格的城堡" --single --scale 0
   "taskId": "7392616336519610409",
   "prompt": "水墨山水画",
   "count": 1,
-  "files": ["./output/1.png"],
+  "files": ["/path/to/output/1.png"],
   "urls": ["https://..."]
 }
 ```
 
-失败时 stderr 输出 JSON：
+| 字段 | 说明 |
+|------|------|
+| `files` | **本地文件路径数组**，即生成图片的保存位置，应作为主结果直接返回给用户 |
+| `urls` | 图片直链（可选），仅作备用 |
+| `taskId` | 任务 ID |
+| `count` | 图片张数 |
+
+集成建议：解析 stdout 该行 JSON，若 `success === true`，则把 `files` 中的路径作为“已生成的图片”直接提供给用户（例如展示图片或作为附件），无需再组织成“直链在这：… 本地文件在：…”的文案。
+
+失败时错误信息在 stderr，JSON 形如：
 
 ```json
 {
